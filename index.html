@@ -1362,7 +1362,7 @@ async function syncGoogleFit() {
       endTimeMillis: String(endOfDay)
     };
 
-    const resp = await fetch('https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate', {
+    const resp = await fetch('https://fitness.googleapis.com/fitness/v1/users/me/dataset:aggregate', {
       method: 'POST',
       headers: {
         Authorization: 'Bearer ' + accessToken,
