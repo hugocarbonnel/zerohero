@@ -1272,17 +1272,8 @@ window.addEventListener('load', () => {
   buildMensurations();
   loadSavedData();
 
-  // Check si déjà connecté
-  const savedToken = loadData('access_token', null);
-  const tokenExpiry = loadData('token_expiry', 0);
-  if (savedToken && Date.now() < tokenExpiry) {
-    accessToken = savedToken;
-    setConnected(loadData('user_email', ''));
-    syncGoogleFit();
-  } else {
-    // Afficher overlay login
-    document.getElementById('loginOverlay').classList.add('show');
-  }
+  // Toujours demander la connexion au démarrage (token non stocké car expire)
+  document.getElementById('loginOverlay').classList.add('show');
 
   // Google Identity Services
   if (window.google) {
@@ -1310,7 +1301,7 @@ function startGoogleAuth() {
     setTimeout(startGoogleAuth, 2000);
     return;
   }
-  tokenClient.requestAccessToken({ prompt: 'consent' });
+  tokenClient.requestAccessToken({ prompt: '' });
 }
 
 function handleTokenResponse(resp) {
@@ -1319,21 +1310,9 @@ function handleTokenResponse(resp) {
     return;
   }
   accessToken = resp.access_token;
-  const expiry = Date.now() + (resp.expires_in * 1000);
-  saveData('access_token', accessToken);
-  saveData('token_expiry', expiry);
-
-  // Get user email
-  fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-    headers: { Authorization: 'Bearer ' + accessToken }
-  })
-  .then(r => r.json())
-  .then(info => {
-    const email = info.email || 'Connecté';
-    saveData('user_email', email);
-    setConnected(email);
-  });
-
+  // Ne pas stocker le token — il expire en 1h, on le redemande à chaque session
+  saveData('user_email', 'carbonnel.h@gmail.com');
+  setConnected('carbonnel.h@gmail.com');
   document.getElementById('loginOverlay').classList.remove('show');
   syncGoogleFit();
 }
@@ -1379,8 +1358,8 @@ async function syncGoogleFit() {
         { dataTypeName: 'com.google.weight' },
       ],
       bucketByTime: { durationMillis: 86400000 },
-      startTimeMillis: startOfDay,
-      endTimeMillis: endOfDay
+      startTimeMillis: String(startOfDay),
+      endTimeMillis: String(endOfDay)
     };
 
     const resp = await fetch('https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate', {
