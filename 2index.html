@@ -1,0 +1,1671 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hugo to Hero</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --surface2: #1a1a26;
+    --border: #2a2a3d;
+    --accent: #e8ff47;
+    --accent2: #47c8ff;
+    --accent3: #ff6b47;
+    --text: #f0f0f8;
+    --muted: #6b6b8a;
+    --success: #47ffb0;
+    --warning: #ffb347;
+    --font-display: 'Bebas Neue', sans-serif;
+    --font-body: 'DM Sans', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* BACKGROUND TEXTURE */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: 
+      radial-gradient(ellipse 80% 50% at 20% 10%, rgba(232,255,71,0.04) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 80%, rgba(71,200,255,0.04) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* HEADER */
+  header {
+    position: relative;
+    z-index: 10;
+    padding: 24px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    background: rgba(10,10,15,0.8);
+    backdrop-filter: blur(20px);
+    position: sticky;
+    top: 0;
+  }
+
+  .logo {
+    font-family: var(--font-display);
+    font-size: 28px;
+    letter-spacing: 3px;
+    color: var(--accent);
+    text-shadow: 0 0 30px rgba(232,255,71,0.3);
+  }
+
+  .logo span { color: var(--text); }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  /* SYNC BUTTON */
+  .btn-sync {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    border-radius: 8px;
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+  }
+
+  .btn-sync:hover { background: #d4eb3a; transform: translateY(-1px); box-shadow: 0 4px 20px rgba(232,255,71,0.3); }
+  .btn-sync:active { transform: translateY(0); }
+  .btn-sync.loading { opacity: 0.7; cursor: not-allowed; }
+
+  .btn-sync svg { width: 16px; height: 16px; }
+  .btn-sync.loading svg { animation: spin 1s linear infinite; }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .user-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .user-badge .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--muted);
+  }
+  .user-badge.connected .dot { background: var(--success); box-shadow: 0 0 8px var(--success); }
+  .user-badge.connected { color: var(--text); }
+
+  /* MAIN LAYOUT */
+  main {
+    position: relative;
+    z-index: 1;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 32px 24px;
+  }
+
+  /* SECTION TITLES */
+  .section-title {
+    font-family: var(--font-display);
+    font-size: 13px;
+    letter-spacing: 4px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* GOOGLE FIT DASHBOARD */
+  .fit-dashboard {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+
+  .fit-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 16px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .fit-card:hover { border-color: var(--accent); }
+
+  .fit-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--card-accent, var(--accent));
+    opacity: 0.6;
+  }
+
+  .fit-card-icon {
+    font-size: 20px;
+    margin-bottom: 8px;
+  }
+
+  .fit-card-label {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+    font-family: var(--font-mono);
+  }
+
+  .fit-card-value {
+    font-family: var(--font-display);
+    font-size: 32px;
+    letter-spacing: 1px;
+    color: var(--text);
+    line-height: 1;
+  }
+
+  .fit-card-unit {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4px;
+    font-family: var(--font-mono);
+  }
+
+  .fit-card-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+
+  .fit-card-sub span { color: var(--success); font-weight: 600; }
+  .fit-card-sub span.over { color: var(--accent3); }
+
+  /* CALORIE BALANCE BAR */
+  .calorie-balance {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 32px;
+  }
+
+  .balance-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+
+  .balance-title {
+    font-family: var(--font-display);
+    font-size: 18px;
+    letter-spacing: 2px;
+  }
+
+  .balance-net {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    padding: 4px 12px;
+    border-radius: 6px;
+    background: var(--surface2);
+  }
+
+  .balance-net.good { color: var(--success); border: 1px solid rgba(71,255,176,0.2); }
+  .balance-net.warn { color: var(--warning); border: 1px solid rgba(255,179,71,0.2); }
+  .balance-net.over { color: var(--accent3); border: 1px solid rgba(255,107,71,0.2); }
+
+  .balance-bars {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 12px;
+  }
+
+  .bar-group label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 6px;
+    font-family: var(--font-mono);
+  }
+
+  .bar-group label span { color: var(--text); font-weight: 600; }
+
+  .bar-track {
+    height: 8px;
+    background: var(--surface2);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .bar-fill.consumed { background: linear-gradient(90deg, var(--accent2), var(--accent)); }
+  .bar-fill.burned { background: linear-gradient(90deg, var(--accent3), var(--warning)); }
+
+  .macros-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+
+  .macro-item {
+    text-align: center;
+  }
+
+  .macro-item .macro-name {
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+    font-family: var(--font-mono);
+  }
+
+  .macro-item .macro-val {
+    font-family: var(--font-display);
+    font-size: 24px;
+    margin: 2px 0;
+  }
+
+  .macro-item .macro-target {
+    font-size: 10px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+  }
+
+  .macro-item.glucides .macro-val { color: var(--accent); }
+  .macro-item.proteines .macro-val { color: var(--accent2); }
+  .macro-item.lipides .macro-val { color: var(--warning); }
+
+  /* TABS */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 4px;
+    margin-bottom: 24px;
+    overflow-x: auto;
+  }
+
+  .tab {
+    flex: 1;
+    min-width: 100px;
+    padding: 10px 16px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.2s;
+    white-space: nowrap;
+    letter-spacing: 0.3px;
+  }
+
+  .tab:hover { color: var(--text); background: var(--surface2); }
+  .tab.active { background: var(--accent); color: var(--bg); font-weight: 600; }
+
+  /* TAB CONTENT */
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* WORKOUT CARDS */
+  .workout-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 20px;
+  }
+
+  .workout-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    transition: transform 0.2s, border-color 0.2s;
+  }
+
+  .workout-card:hover { transform: translateY(-2px); border-color: var(--accent); }
+
+  .workout-card-header {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .workout-name {
+    font-family: var(--font-display);
+    font-size: 22px;
+    letter-spacing: 2px;
+    color: var(--accent);
+  }
+
+  .workout-badge {
+    font-size: 10px;
+    font-family: var(--font-mono);
+    letter-spacing: 1px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: var(--surface2);
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+
+  .exercise-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .exercise-table thead tr {
+    background: var(--surface2);
+  }
+
+  .exercise-table th {
+    padding: 10px 16px;
+    text-align: left;
+    font-size: 10px;
+    font-family: var(--font-mono);
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+    font-weight: 400;
+  }
+
+  .exercise-table td {
+    padding: 12px 16px;
+    font-size: 13px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+
+  .exercise-table tr:last-child td { border-bottom: none; }
+
+  .exercise-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .exercise-name {
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    color: var(--text);
+    text-transform: uppercase;
+  }
+
+  .series-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 4px;
+  }
+
+  .series-tag {
+    font-size: 10px;
+    font-family: var(--font-mono);
+    padding: 2px 7px;
+    border-radius: 4px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--accent2);
+  }
+
+  .rest-badge {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--accent3);
+    font-weight: 600;
+  }
+
+  .comment-text {
+    font-size: 11px;
+    color: var(--muted);
+    font-style: italic;
+    line-height: 1.4;
+  }
+
+  /* SUIVI HEBDO */
+  .suivi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .week-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    transition: border-color 0.2s;
+  }
+
+  .week-card.current { border-color: var(--accent); }
+
+  .week-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+
+  .week-label {
+    font-family: var(--font-display);
+    font-size: 18px;
+    letter-spacing: 2px;
+  }
+
+  .week-badge {
+    font-size: 10px;
+    font-family: var(--font-mono);
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: rgba(232,255,71,0.1);
+    color: var(--accent);
+    border: 1px solid rgba(232,255,71,0.2);
+  }
+
+  .week-inputs {
+    display: grid;
+    gap: 10px;
+  }
+
+  .input-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .input-row label {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    flex: 1;
+  }
+
+  .input-row input {
+    width: 90px;
+    padding: 6px 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    text-align: right;
+    transition: border-color 0.2s;
+  }
+
+  .input-row input:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  /* MENSURATION */
+  .mensuration-table {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+
+  .mensuration-table table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .mensuration-table th {
+    padding: 12px 16px;
+    text-align: center;
+    font-size: 10px;
+    font-family: var(--font-mono);
+    letter-spacing: 2px;
+    color: var(--muted);
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  .mensuration-table th:first-child { text-align: left; }
+
+  .mensuration-table td {
+    padding: 10px 16px;
+    text-align: center;
+    font-size: 13px;
+    border-bottom: 1px solid var(--border);
+    font-family: var(--font-mono);
+  }
+
+  .mensuration-table tr:last-child td { border-bottom: none; }
+
+  .mensuration-table td:first-child {
+    text-align: left;
+    font-family: var(--font-body);
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .mensuration-table td input {
+    width: 70px;
+    padding: 4px 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    text-align: center;
+    transition: border-color 0.2s;
+  }
+
+  .mensuration-table td input:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  .mensuration-table .section-row td {
+    background: var(--surface2);
+    color: var(--accent);
+    font-family: var(--font-display);
+    font-size: 14px;
+    letter-spacing: 3px;
+    text-align: left;
+    padding: 10px 16px;
+  }
+
+  /* PROFIL */
+  .profil-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+  }
+
+  .profil-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+  }
+
+  .profil-card h3 {
+    font-family: var(--font-display);
+    font-size: 16px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    margin-bottom: 20px;
+    text-transform: uppercase;
+  }
+
+  .profil-stat {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .profil-stat:last-child { border-bottom: none; }
+
+  .profil-stat-label {
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .profil-stat-value {
+    font-family: var(--font-mono);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .profil-stat-value.accent { color: var(--accent); }
+  .profil-stat-value.accent2 { color: var(--accent2); }
+
+  /* PROTOCOLE */
+  .protocole-steps {
+    display: flex;
+    gap: 12px;
+    margin-top: 16px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
+
+  .proto-step {
+    flex-shrink: 0;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    min-width: 160px;
+  }
+
+  .proto-step.current { border-color: var(--accent); background: rgba(232,255,71,0.05); }
+
+  .proto-step-label {
+    font-size: 10px;
+    font-family: var(--font-mono);
+    letter-spacing: 2px;
+    color: var(--muted);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+  }
+
+  .proto-step-kcal {
+    font-family: var(--font-display);
+    font-size: 28px;
+    color: var(--accent);
+    letter-spacing: 1px;
+  }
+
+  .proto-step-desc {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+    line-height: 1.4;
+  }
+
+  /* SAVE BUTTON */
+  .btn-save {
+    padding: 12px 28px;
+    background: none;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    border-radius: 8px;
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+  }
+
+  .btn-save:hover { background: var(--accent); color: var(--bg); }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 1000;
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.success { background: rgba(71,255,176,0.15); border: 1px solid rgba(71,255,176,0.3); color: var(--success); }
+  .toast.error { background: rgba(255,107,71,0.15); border: 1px solid rgba(255,107,71,0.3); color: var(--accent3); }
+  .toast.info { background: rgba(71,200,255,0.15); border: 1px solid rgba(71,200,255,0.3); color: var(--accent2); }
+
+  /* LOGIN OVERLAY */
+  .login-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(10,10,15,0.9);
+    backdrop-filter: blur(10px);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .login-overlay.show { display: flex; }
+
+  .login-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 40px;
+    max-width: 400px;
+    width: 90%;
+    text-align: center;
+  }
+
+  .login-box h2 {
+    font-family: var(--font-display);
+    font-size: 32px;
+    letter-spacing: 3px;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+
+  .login-box p {
+    color: var(--muted);
+    font-size: 14px;
+    margin-bottom: 28px;
+    line-height: 1.5;
+  }
+
+  .btn-google {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 14px 20px;
+    background: white;
+    color: #333;
+    border: none;
+    border-radius: 10px;
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-google:hover { background: #f0f0f0; transform: translateY(-1px); box-shadow: 0 4px 20px rgba(255,255,255,0.1); }
+
+  .btn-skip {
+    margin-top: 12px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 13px;
+    cursor: pointer;
+    text-decoration: underline;
+    font-family: var(--font-body);
+  }
+
+  .btn-skip:hover { color: var(--text); }
+
+  /* LAST SYNC */
+  .last-sync {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    text-align: right;
+    margin-bottom: 12px;
+  }
+
+  /* RESPONSIVE */
+  @media (max-width: 768px) {
+    header { padding: 16px; }
+    main { padding: 16px; }
+    .logo { font-size: 22px; }
+    .fit-dashboard { grid-template-columns: repeat(2, 1fr); }
+    .workout-grid { grid-template-columns: 1fr; }
+    .balance-bars { grid-template-columns: 1fr; }
+    .exercise-table th:nth-child(4),
+    .exercise-table td:nth-child(4) { display: none; }
+  }
+
+  /* ANIMATIONS */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .tab-content.active { animation: fadeIn 0.3s ease; }
+
+  .fit-card { animation: fadeIn 0.4s ease both; }
+  .fit-card:nth-child(1) { animation-delay: 0.05s; }
+  .fit-card:nth-child(2) { animation-delay: 0.1s; }
+  .fit-card:nth-child(3) { animation-delay: 0.15s; }
+  .fit-card:nth-child(4) { animation-delay: 0.2s; }
+  .fit-card:nth-child(5) { animation-delay: 0.25s; }
+  .fit-card:nth-child(6) { animation-delay: 0.3s; }
+</style>
+</head>
+<body>
+
+<!-- LOGIN OVERLAY -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-box">
+    <h2>HUGO TO HERO</h2>
+    <p>Connecte-toi avec Google pour synchroniser tes données Google Fit & MFP</p>
+    <button class="btn-google" onclick="startGoogleAuth()">
+      <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"/><path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.8 4.8 0 0 1-7.18-2.54H1.83v2.07A8 8 0 0 0 8.98 17z"/><path fill="#FBBC05" d="M4.5 10.52a4.8 4.8 0 0 1 0-3.04V5.41H1.83a8 8 0 0 0 0 7.18l2.67-2.07z"/><path fill="#EA4335" d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 1.83 5.4L4.5 7.49a4.77 4.77 0 0 1 4.48-3.3z"/></svg>
+      Connexion avec Google
+    </button>
+    <button class="btn-skip" onclick="skipLogin()">Continuer sans synchronisation</button>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">HUGO <span>TO</span> HERO</div>
+  <div class="header-right">
+    <div class="user-badge" id="userBadge">
+      <div class="dot"></div>
+      <span id="userEmail">Non connecté</span>
+    </div>
+    <button class="btn-sync" id="syncBtn" onclick="syncGoogleFit()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M23 4v6h-6M1 20v-6h6"/>
+        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+      </svg>
+      Actualiser
+    </button>
+  </div>
+</header>
+
+<!-- MAIN -->
+<main>
+
+  <!-- GOOGLE FIT DATA -->
+  <div class="section-title">📊 Aujourd'hui — Google Fit & MFP</div>
+  <div id="lastSync" class="last-sync">Dernière sync : jamais</div>
+
+  <div class="fit-dashboard">
+    <div class="fit-card" style="--card-accent: var(--accent)">
+      <div class="fit-card-icon">🍽️</div>
+      <div class="fit-card-label">Calories MFP</div>
+      <div class="fit-card-value" id="val-calories-in">—</div>
+      <div class="fit-card-unit">kcal consommées</div>
+      <div class="fit-card-sub">Cible : <span>2 428 kcal</span></div>
+    </div>
+
+    <div class="fit-card" style="--card-accent: var(--accent3)">
+      <div class="fit-card-icon">🔥</div>
+      <div class="fit-card-label">Calories brûlées</div>
+      <div class="fit-card-value" id="val-calories-out">—</div>
+      <div class="fit-card-unit">kcal dépensées</div>
+      <div class="fit-card-sub" id="sub-calories-out">Activités + métabolisme</div>
+    </div>
+
+    <div class="fit-card" style="--card-accent: var(--success)">
+      <div class="fit-card-icon">⚖️</div>
+      <div class="fit-card-label">Poids</div>
+      <div class="fit-card-value" id="val-weight">85</div>
+      <div class="fit-card-unit">kg</div>
+      <div class="fit-card-sub" id="sub-weight">Objectif : perte progressive</div>
+    </div>
+
+    <div class="fit-card" style="--card-accent: var(--accent2)">
+      <div class="fit-card-icon">🚶</div>
+      <div class="fit-card-label">Pas</div>
+      <div class="fit-card-value" id="val-steps">—</div>
+      <div class="fit-card-unit">pas aujourd'hui</div>
+      <div class="fit-card-sub" id="sub-steps">Objectif : 8 000 pas</div>
+    </div>
+
+    <div class="fit-card" style="--card-accent: var(--warning)">
+      <div class="fit-card-icon">🚴</div>
+      <div class="fit-card-label">Activités</div>
+      <div class="fit-card-value" id="val-active-min">—</div>
+      <div class="fit-card-unit">min actives</div>
+      <div class="fit-card-sub" id="sub-active">Vélo, marche, sport</div>
+    </div>
+
+    <div class="fit-card" style="--card-accent: var(--accent)">
+      <div class="fit-card-icon">📈</div>
+      <div class="fit-card-label">Bilan net</div>
+      <div class="fit-card-value" id="val-balance">—</div>
+      <div class="fit-card-unit">kcal net</div>
+      <div class="fit-card-sub" id="sub-balance">Consommé - Brûlé</div>
+    </div>
+  </div>
+
+  <!-- CALORIE BALANCE -->
+  <div class="calorie-balance">
+    <div class="balance-header">
+      <div class="balance-title">BILAN CALORIQUE</div>
+      <div class="balance-net" id="balanceNetBadge">— kcal</div>
+    </div>
+    <div class="balance-bars">
+      <div class="bar-group">
+        <label>Consommé (MFP) <span id="bar-consumed-label">— kcal</span></label>
+        <div class="bar-track"><div class="bar-fill consumed" id="barConsumed" style="width:0%"></div></div>
+      </div>
+      <div class="bar-group">
+        <label>Brûlé (Fit) <span id="bar-burned-label">— kcal</span></label>
+        <div class="bar-track"><div class="bar-fill burned" id="barBurned" style="width:0%"></div></div>
+      </div>
+    </div>
+    <div class="macros-row">
+      <div class="macro-item glucides">
+        <div class="macro-name">Glucides</div>
+        <div class="macro-val" id="val-carbs">—</div>
+        <div class="macro-target">/ 307g cible</div>
+      </div>
+      <div class="macro-item proteines">
+        <div class="macro-name">Protéines</div>
+        <div class="macro-val" id="val-protein">—</div>
+        <div class="macro-target">/ 128g cible</div>
+      </div>
+      <div class="macro-item lipides">
+        <div class="macro-name">Lipides</div>
+        <div class="macro-val" id="val-fat">—</div>
+        <div class="macro-target">/ 77g cible</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('entrainements')">🏋️ Entraînements</button>
+    <button class="tab" onclick="switchTab('suivi')">📋 Suivi hebdo</button>
+    <button class="tab" onclick="switchTab('mensurations')">📏 Mensurations</button>
+    <button class="tab" onclick="switchTab('profil')">👤 Profil</button>
+  </div>
+
+  <!-- TAB: ENTRAÎNEMENTS -->
+  <div class="tab-content active" id="tab-entrainements">
+    <div class="workout-grid">
+
+      <!-- UPPER A -->
+      <div class="workout-card">
+        <div class="workout-card-header">
+          <div class="workout-name">UPPER A</div>
+          <div class="workout-badge">PUSH / PULL / ÉPAULES</div>
+        </div>
+        <table class="exercise-table">
+          <thead>
+            <tr>
+              <th>Exercice</th>
+              <th>Séries</th>
+              <th>Repos</th>
+              <th>Note</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><div class="exercise-name">Développé incliné</div></td>
+              <td><div class="series-tags"><span class="series-tag">4-6</span><span class="series-tag">6-8</span><span class="series-tag">8-10</span></div></td>
+              <td><div class="rest-badge">2'30''</div></td>
+              <td><div class="comment-text">Top set puis -10% à chaque série</div></td>
+            </tr>
+            <tr>
+              <td><div class="exercise-name">Tractions lestées</div></td>
+              <td><div class="series-tags"><span class="series-tag">4-6</span><span class="series-tag">6-8</span><span class="series-tag">8-10</span></div></td>
+              <td><div class="rest-badge">2'</div></td>
+              <td><div class="comment-text">Top set puis -10% à chaque série</div></td>
+            </tr>
+            <tr>
+              <td><div class="exercise-name">Élévations frontales</div></td>
+              <td><div class="series-tags"><span class="series-tag">10-15</span><span class="series-tag">10-15</span><span class="series-tag">10-15</span></div></td>
+              <td><div class="rest-badge">1'30''</div></td>
+              <td><div class="comment-text">Pic de contraction 2'' en haut</div></td>
+            </tr>
+            <tr>
+              <td><div class="exercise-name">Curl incliné haltères</div></td>
+              <td><div class="series-tags"><span class="series-tag">8-12</span><span class="series-tag">8-12</span><span class="series-tag">8-12</span></div></td>
+              <td><div class="rest-badge">1'30''</div></td>
+              <td><div class="comment-text">—</div></td>
+            </tr>
+            <tr>
+              <td><div class="exercise-name">Élévations latérales</div></td>
+              <td><div class="series-tags"><span class="series-tag">15-20</span><span class="series-tag">10-15</span><span class="series-tag">8-10 triche</span></div></td>
+              <td><div class="rest-badge">1'</div></td>
+              <td><div class="comment-text">Raptor Set : dernière série en dégressive mécanique</div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- LOWER -->
+      <div class="workout-card">
+        <div class="workout-card-header">
+          <div class="workout-name">LOWER</div>
+          <div class="workout-badge">JAMBES / MOLLETS</div>
+        </div>
+        <table class="exercise-table">
+          <thead>
+            <tr>
+              <th>Exercice</th>
+              <th>Séries</th>
+              <th>Repos</th>
+              <th>Note</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><div class="exercise-name">High Bar Squat ou Deadlift</div></td>
+              <td><div class="series-tags"><span class="series-tag">6-10</span><span class="series-tag">6-10</span><span class="series-tag">6-10</span></div></td>
+              <td><div class="rest-badge">2'</div></td>
+              <td><div class="comment-text">—</div></td>
+            </tr>
+            <tr>
+              <td><div class="exercise-name">Romanian DL ou Fentes</div></td>
+              <td><div class="series-tags"><span class="series-tag">10-15</span><span class="series-tag">10-15</span><span class="series-tag">10-15</span></div></td>
+              <td><div class="rest-badge">1'30''</div></td>
+              <td><div class="comment-text">—</div></td>
+            </tr>
+            <tr>
+              <td><div class="exercise-name">Leg Curl SS Leg Extension</div></td>
+              <td><div class="series-tags"><span class="series-tag">8-12</span><span class="series-tag">8-12</span><span class="series-tag">8-12</span></div></td>
+              <td><div class="rest-badge">30''</div></td>
+              <td><div class="comment-text">30'' entre chaque exercice</div></td>
+            </tr>
+            <tr>
+              <td><div class="exercise-name">Extensions mollets</div></td>
+              <td><div class="series-tags"><span class="series-tag">12-15</span><span class="series-tag">8-12</span><span class="series-tag">6-10 AMRAP</span></div></td>
+              <td><div class="rest-badge">1'</div></td>
+              <td><div class="comment-text">Tempo 1-2-2-1</div></td>
+            </tr>
+            <tr>
+              <td><div class="exercise-name">Upright Row penché</div></td>
+              <td><div class="series-tags"><span class="series-tag">15-20</span><span class="series-tag">10-15</span><span class="series-tag">6-10 AMRAP</span></div></td>
+              <td><div class="rest-badge">1'</div></td>
+              <td><div class="comment-text">Augmenter le poids à chaque série</div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- UPPER B -->
+      <div class="workout-card">
+        <div class="workout-card-header">
+          <div class="workout-name">UPPER B</div>
+          <div class="workout-badge">OHP / BENCH / BACK</div>
+        </div>
+        <table class="exercise-table">
+          <thead>
+            <tr>
+              <th>Exercice</th>
+              <th>Séries</th>
+              <th>Repos</th>
+              <th>Note</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><div class="exercise-name">Overhead Press</div></td>
+              <td><div class="series-tags"><span class="series-tag">4-6</span><span class="series-tag">6-8</span><span class="series-tag">8-10</span></div></td>
+              <td><div class="rest-badge">2'30''</div></td>
+              <td><div class="comment-text">Top set puis -10% à chaque série</div></td>
+            </tr>
+            <tr>
+              <td><div class="exercise-name">Développé couché</div></td>
+              <td><div class="series-tags"><span class="series-tag">4-6</span><span class="series-tag">6-8</span><span class="series-tag">8-10</span></div></td>
+              <td><div class="rest-badge">2'</div></td>
+              <td><div class="comment-text">Top set puis -10% à chaque série</div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- TAB: SUIVI HEBDO -->
+  <div class="tab-content" id="tab-suivi">
+    <div class="suivi-grid" id="suiviGrid"></div>
+    <button class="btn-save" onclick="saveSuivi()">💾 Enregistrer le suivi</button>
+  </div>
+
+  <!-- TAB: MENSURATIONS -->
+  <div class="tab-content" id="tab-mensurations">
+    <div class="mensuration-table">
+      <table id="mensuTable">
+        <thead>
+          <tr id="mensuHeader">
+            <th>Mesure</th>
+          </tr>
+        </thead>
+        <tbody id="mensuBody"></tbody>
+      </table>
+    </div>
+    <div class="mensuration-table">
+      <table id="perfTable">
+        <thead>
+          <tr id="perfHeader">
+            <th>Performance</th>
+          </tr>
+        </thead>
+        <tbody id="perfBody"></tbody>
+      </table>
+    </div>
+    <button class="btn-save" onclick="saveMensurations()">💾 Enregistrer</button>
+  </div>
+
+  <!-- TAB: PROFIL -->
+  <div class="tab-content" id="tab-profil">
+    <div class="profil-grid">
+      <div class="profil-card">
+        <h3>Profil</h3>
+        <div class="profil-stat"><span class="profil-stat-label">Nom</span><span class="profil-stat-value">Hugo Carbonnel</span></div>
+        <div class="profil-stat"><span class="profil-stat-label">Âge</span><span class="profil-stat-value">32 ans</span></div>
+        <div class="profil-stat"><span class="profil-stat-label">Taille</span><span class="profil-stat-value">1,75 m</span></div>
+        <div class="profil-stat"><span class="profil-stat-label">Poids initial</span><span class="profil-stat-value">85 kg</span></div>
+        <div class="profil-stat"><span class="profil-stat-label">Bodyfat initial</span><span class="profil-stat-value">25 %</span></div>
+        <div class="profil-stat"><span class="profil-stat-label">Début programme</span><span class="profil-stat-value">02/05/2023</span></div>
+      </div>
+
+      <div class="profil-card">
+        <h3>Nutrition — Protocole 4</h3>
+        <div class="profil-stat"><span class="profil-stat-label">Maintenance</span><span class="profil-stat-value">2 728 kcal</span></div>
+        <div class="profil-stat"><span class="profil-stat-label">Cible actuelle</span><span class="profil-stat-value accent">2 428 kcal</span></div>
+        <div class="profil-stat"><span class="profil-stat-label">Glucides cible</span><span class="profil-stat-value accent">307 g</span></div>
+        <div class="profil-stat"><span class="profil-stat-label">Protéines cible</span><span class="profil-stat-value accent2">128 g</span></div>
+        <div class="profil-stat"><span class="profil-stat-label">Lipides cible</span><span class="profil-stat-value" style="color:var(--warning)">77 g</span></div>
+      </div>
+
+      <div class="profil-card" style="grid-column: 1 / -1;">
+        <h3>Protocole 4 — Perte de gras progressive (> 20% BF)</h3>
+        <div class="protocole-steps">
+          <div class="proto-step current">
+            <div class="proto-step-label">Étape 0</div>
+            <div class="proto-step-kcal">2 728</div>
+            <div class="proto-step-desc">2 semaines de maintien</div>
+          </div>
+          <div class="proto-step current">
+            <div class="proto-step-label">Étape 1 ← actuelle</div>
+            <div class="proto-step-kcal">2 428</div>
+            <div class="proto-step-desc">-300 kcal — 2 semaines</div>
+          </div>
+          <div class="proto-step">
+            <div class="proto-step-label">Étape 2</div>
+            <div class="proto-step-kcal">2 228</div>
+            <div class="proto-step-desc">-500 kcal — 2 semaines</div>
+          </div>
+          <div class="proto-step">
+            <div class="proto-step-label">Étape 3a</div>
+            <div class="proto-step-kcal">2 028</div>
+            <div class="proto-step-desc">-700 kcal (agressif)</div>
+          </div>
+          <div class="proto-step">
+            <div class="proto-step-label">Étape 3b</div>
+            <div class="proto-step-kcal">2 228</div>
+            <div class="proto-step-desc">Maintenir -500 kcal → cat. 3</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// CONFIG
+// ============================================================
+const CLIENT_ID = '1062390257549-58iurui1h9ett00chsperi7t6412iafo.apps.googleusercontent.com';
+const SCOPES = [
+  'https://www.googleapis.com/auth/fitness.activity.read',
+  'https://www.googleapis.com/auth/fitness.body.read',
+  'https://www.googleapis.com/auth/fitness.nutrition.read'
+].join(' ');
+
+const TARGETS = {
+  calories: 2428,
+  carbs: 307,
+  protein: 128,
+  fat: 77,
+  steps: 8000
+};
+
+let accessToken = null;
+let tokenClient = null;
+
+// ============================================================
+// STORAGE (localStorage pour données locales)
+// ============================================================
+function saveData(key, val) {
+  try { localStorage.setItem('hth_' + key, JSON.stringify(val)); } catch(e) {}
+}
+function loadData(key, def) {
+  try {
+    const v = localStorage.getItem('hth_' + key);
+    return v ? JSON.parse(v) : def;
+  } catch(e) { return def; }
+}
+
+// ============================================================
+// INIT
+// ============================================================
+window.addEventListener('load', () => {
+  buildSuivi();
+  buildMensurations();
+  loadSavedData();
+
+  // Toujours demander la connexion au démarrage (token non stocké car expire)
+  document.getElementById('loginOverlay').classList.add('show');
+
+  // Google Identity Services
+  if (window.google) {
+    initGoogleAuth();
+  } else {
+    const script = document.querySelector('script[src*="gsi/client"]');
+    script.addEventListener('load', initGoogleAuth);
+  }
+});
+
+function initGoogleAuth() {
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPES,
+    callback: handleTokenResponse,
+  });
+}
+
+// ============================================================
+// AUTH
+// ============================================================
+function startGoogleAuth() {
+  if (!tokenClient) {
+    showToast('Chargement Google en cours, réessaie dans 2 secondes', 'info');
+    setTimeout(startGoogleAuth, 2000);
+    return;
+  }
+  tokenClient.requestAccessToken({ prompt: '' });
+}
+
+function handleTokenResponse(resp) {
+  if (resp.error) {
+    showToast('Erreur connexion : ' + resp.error, 'error');
+    return;
+  }
+  accessToken = resp.access_token;
+  // Ne pas stocker le token — il expire en 1h, on le redemande à chaque session
+  saveData('user_email', 'carbonnel.h@gmail.com');
+  setConnected('carbonnel.h@gmail.com');
+  document.getElementById('loginOverlay').classList.remove('show');
+  syncGoogleFit();
+}
+
+function setConnected(email) {
+  const badge = document.getElementById('userBadge');
+  badge.classList.add('connected');
+  document.getElementById('userEmail').textContent = email;
+}
+
+function skipLogin() {
+  document.getElementById('loginOverlay').classList.remove('show');
+  showToast('Mode hors-ligne — données Google Fit non disponibles', 'info');
+}
+
+// ============================================================
+// SYNC GOOGLE FIT
+// ============================================================
+async function syncGoogleFit() {
+  if (!accessToken) {
+    document.getElementById('loginOverlay').classList.add('show');
+    return;
+  }
+
+  const btn = document.getElementById('syncBtn');
+  btn.classList.add('loading');
+  btn.querySelector('span') && (btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Sync...');
+  btn.textContent = '';
+  btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Sync...';
+
+  try {
+    const now = new Date();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0).getTime();
+    const endOfDay = now.getTime();
+
+    const body = {
+      aggregateBy: [
+        { dataTypeName: 'com.google.calories.expended' },
+        { dataTypeName: 'com.google.step_count.delta' },
+        { dataTypeName: 'com.google.active_minutes' },
+        { dataTypeName: 'com.google.weight' },
+        {
+          dataTypeName: 'com.google.nutrition',
+          dataSourceId: 'raw:com.google.nutrition:com.myfitnesspal.android:'
+        },
+      ],
+      bucketByTime: { durationMillis: 86400000 },
+      startTimeMillis: String(startOfDay),
+      endTimeMillis: String(endOfDay)
+    };
+
+    const resp = await fetch('https://fitness.googleapis.com/fitness/v1/users/me/dataset:aggregate', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer ' + accessToken,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+
+    if (resp.status === 401) {
+      // Token expiré
+      accessToken = null;
+      saveData('access_token', null);
+      document.getElementById('loginOverlay').classList.add('show');
+      showToast('Session expirée, reconnecte-toi', 'error');
+      return;
+    }
+
+    const data = await resp.json();
+    processData(data);
+
+    const syncTime = new Date().toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
+    document.getElementById('lastSync').textContent = `Dernière sync : ${syncTime}`;
+    showToast('✅ Données synchronisées', 'success');
+
+  } catch(err) {
+    console.error(err);
+    showToast('Erreur de synchronisation', 'error');
+  } finally {
+    btn.classList.remove('loading');
+    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Actualiser';
+  }
+}
+
+function processData(data) {
+  let caloriesIn = 0, caloriesOut = 0, steps = 0, activeMin = 0;
+  let carbs = 0, protein = 0, fat = 0, weight = 0;
+
+  if (data.bucket) {
+    for (const bucket of data.bucket) {
+      for (const ds of (bucket.dataset || [])) {
+        for (const pt of (ds.point || [])) {
+          const dtype = pt.dataTypeName;
+          const vals = pt.value || [];
+
+          if (dtype === 'com.google.calories.consumed') {
+            caloriesIn += vals[0]?.fpVal || 0;
+          } else if (dtype === 'com.google.calories.expended') {
+            caloriesOut += vals[0]?.fpVal || 0;
+          } else if (dtype === 'com.google.step_count.delta') {
+            steps += vals[0]?.intVal || 0;
+          } else if (dtype === 'com.google.active_minutes') {
+            activeMin += vals[0]?.intVal || 0;
+          } else if (dtype === 'com.google.nutrition') {
+            for (const v of vals) {
+              if (v.mapVal) {
+                for (const m of v.mapVal) {
+                  if (m.key === 'fat.total') fat += m.value?.fpVal || 0;
+                  if (m.key === 'protein') protein += m.value?.fpVal || 0;
+                  if (m.key === 'carbs.total') carbs += m.value?.fpVal || 0;
+                  if (m.key === 'calories') caloriesIn += m.value?.fpVal || 0;
+                }
+              }
+            }
+          } else if (dtype === 'com.google.weight') {
+            const w = vals[0]?.fpVal || 0;
+            if (w > 0) weight = w;
+          }
+        }
+      }
+    }
+  }
+
+  // Déduplication calories (Fit peut remonter celles de MFP)
+  // On garde caloriesIn de nutrition si disponible
+  caloriesIn = Math.round(caloriesIn);
+  caloriesOut = Math.round(caloriesOut);
+  steps = Math.round(steps);
+  activeMin = Math.round(activeMin);
+  carbs = Math.round(carbs);
+  protein = Math.round(protein);
+  fat = Math.round(fat);
+  weight = weight ? weight.toFixed(1) : null;
+
+  updateUI(caloriesIn, caloriesOut, steps, activeMin, carbs, protein, fat, weight);
+}
+
+function updateUI(caloriesIn, caloriesOut, steps, activeMin, carbs, protein, fat, weight) {
+  const net = caloriesIn - caloriesOut;
+
+  // Cards
+  setVal('val-calories-in', caloriesIn || '—');
+  setVal('val-calories-out', caloriesOut || '—');
+  setVal('val-steps', steps ? steps.toLocaleString('fr-FR') : '—');
+  setVal('val-active-min', activeMin || '—');
+  setVal('val-balance', net ? (net > 0 ? '+' + net : net) : '—');
+
+  if (weight) {
+    setVal('val-weight', weight);
+    document.getElementById('sub-weight').innerHTML = `Départ : 85 kg → <span>${weight} kg</span>`;
+  }
+
+  // Sous-titres
+  if (caloriesIn > 0) {
+    const diff = caloriesIn - TARGETS.calories;
+    const el = document.getElementById('sub-calories-out');
+    if (diff > 0) {
+      document.querySelector('#val-calories-in').closest('.fit-card').querySelector('.fit-card-sub').innerHTML = `Cible : <span class="over">${TARGETS.calories} kcal (+${diff})</span>`;
+    } else {
+      document.querySelector('#val-calories-in').closest('.fit-card').querySelector('.fit-card-sub').innerHTML = `Cible : <span>${TARGETS.calories} kcal (${diff})</span>`;
+    }
+  }
+
+  if (steps > 0) {
+    const pct = Math.min(100, Math.round(steps / TARGETS.steps * 100));
+    document.getElementById('sub-steps').innerHTML = `<span>${pct}%</span> de l'objectif`;
+  }
+
+  // Balance badge
+  const badge = document.getElementById('balanceNetBadge');
+  if (net !== 0) {
+    badge.textContent = (net > 0 ? '+' : '') + net + ' kcal';
+    badge.className = 'balance-net ' + (net < 0 ? 'good' : net < 200 ? 'warn' : 'over');
+  }
+
+  // Bars
+  if (caloriesIn > 0) {
+    const pctIn = Math.min(100, Math.round(caloriesIn / (TARGETS.calories * 1.3) * 100));
+    document.getElementById('barConsumed').style.width = pctIn + '%';
+    document.getElementById('bar-consumed-label').textContent = caloriesIn + ' kcal';
+  }
+
+  if (caloriesOut > 0) {
+    const pctOut = Math.min(100, Math.round(caloriesOut / (TARGETS.calories * 1.3) * 100));
+    document.getElementById('barBurned').style.width = pctOut + '%';
+    document.getElementById('bar-burned-label').textContent = caloriesOut + ' kcal';
+  }
+
+  // Macros
+  setVal('val-carbs', carbs ? carbs + 'g' : '—');
+  setVal('val-protein', protein ? protein + 'g' : '—');
+  setVal('val-fat', fat ? fat + 'g' : '—');
+}
+
+function setVal(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = val;
+}
+
+// ============================================================
+// TABS
+// ============================================================
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    const tabs = ['entrainements', 'suivi', 'mensurations', 'profil'];
+    t.classList.toggle('active', tabs[i] === name);
+  });
+  document.querySelectorAll('.tab-content').forEach(c => {
+    c.classList.toggle('active', c.id === 'tab-' + name);
+  });
+}
+
+// ============================================================
+// SUIVI HEBDO
+// ============================================================
+function buildSuivi() {
+  const grid = document.getElementById('suiviGrid');
+  grid.innerHTML = '';
+  const data = loadData('suivi', {});
+  const currentWeek = getCurrentWeek();
+
+  for (let i = 1; i <= 12; i++) {
+    const w = data['s' + i] || {};
+    const isCurrent = i === currentWeek;
+    const card = document.createElement('div');
+    card.className = 'week-card' + (isCurrent ? ' current' : '');
+    card.innerHTML = `
+      <div class="week-header">
+        <div class="week-label">SEMAINE ${i}</div>
+        ${isCurrent ? '<div class="week-badge">EN COURS</div>' : ''}
+      </div>
+      <div class="week-inputs">
+        <div class="input-row">
+          <label>Calories (kcal)</label>
+          <input type="number" placeholder="—" value="${w.cal || ''}" id="s${i}_cal">
+        </div>
+        <div class="input-row">
+          <label>Poids (kg)</label>
+          <input type="number" step="0.1" placeholder="—" value="${w.poids || ''}" id="s${i}_poids">
+        </div>
+        <div class="input-row">
+          <label>Tour de taille (cm)</label>
+          <input type="number" placeholder="—" value="${w.taille || ''}" id="s${i}_taille">
+        </div>
+      </div>
+    `;
+    grid.appendChild(card);
+  }
+}
+
+function getCurrentWeek() {
+  const start = new Date('2023-05-02');
+  const now = new Date();
+  const diff = Math.floor((now - start) / (7 * 24 * 3600 * 1000)) + 1;
+  return Math.min(12, Math.max(1, diff));
+}
+
+function saveSuivi() {
+  const data = {};
+  for (let i = 1; i <= 12; i++) {
+    data['s' + i] = {
+      cal: document.getElementById('s' + i + '_cal')?.value || '',
+      poids: document.getElementById('s' + i + '_poids')?.value || '',
+      taille: document.getElementById('s' + i + '_taille')?.value || ''
+    };
+  }
+  saveData('suivi', data);
+  showToast('✅ Suivi enregistré', 'success');
+}
+
+// ============================================================
+// MENSURATIONS & PERFORMANCES
+// ============================================================
+const MENSU_ROWS = ['Tour de pectoraux', "Tour de bras", "Tour d'épaules", 'Tour de jambes', 'Tour de taille'];
+const MENSU_DEFAULTS = [107, 32, 118, 59, 101];
+const PERF_ROWS = ['Développé incliné', 'Tractions lestées', 'Leg Press', 'Squat', 'Deadlift', 'Overhead Press', 'Développé couché'];
+
+function buildMensurations() {
+  const header = document.getElementById('mensuHeader');
+  const perfH = document.getElementById('perfHeader');
+  const body = document.getElementById('mensuBody');
+  const perfBody = document.getElementById('perfBody');
+  const mensuData = loadData('mensu', {});
+  const perfData = loadData('perf', {});
+
+  // Add week headers
+  for (let i = 1; i <= 12; i++) {
+    header.innerHTML += `<th>S${i}</th>`;
+    perfH.innerHTML += `<th>S${i}</th>`;
+  }
+
+  // Mensurations
+  MENSU_ROWS.forEach((row, ri) => {
+    const tr = document.createElement('tr');
+    let tds = `<td>${row}</td>`;
+    for (let i = 1; i <= 12; i++) {
+      const key = `m${ri}_s${i}`;
+      const val = mensuData[key] || (i === 1 ? MENSU_DEFAULTS[ri] : '');
+      tds += `<td><input type="number" step="0.1" value="${val}" id="${key}" placeholder="—"></td>`;
+    }
+    tr.innerHTML = tds;
+    body.appendChild(tr);
+  });
+
+  // Performances
+  PERF_ROWS.forEach((row, ri) => {
+    const tr = document.createElement('tr');
+    let tds = `<td>${row}</td>`;
+    for (let i = 1; i <= 12; i++) {
+      const key = `p${ri}_s${i}`;
+      const val = perfData[key] || '';
+      tds += `<td><input type="text" value="${val}" id="${key}" placeholder="—" style="width:70px;padding:4px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:var(--font-mono);font-size:12px;text-align:center;"></td>`;
+    }
+    tr.innerHTML = tds;
+    perfBody.appendChild(tr);
+  });
+}
+
+function saveMensurations() {
+  const mensuData = {};
+  const perfData = {};
+  MENSU_ROWS.forEach((_, ri) => {
+    for (let i = 1; i <= 12; i++) {
+      const key = `m${ri}_s${i}`;
+      mensuData[key] = document.getElementById(key)?.value || '';
+    }
+  });
+  PERF_ROWS.forEach((_, ri) => {
+    for (let i = 1; i <= 12; i++) {
+      const key = `p${ri}_s${i}`;
+      perfData[key] = document.getElementById(key)?.value || '';
+    }
+  });
+  saveData('mensu', mensuData);
+  saveData('perf', perfData);
+  showToast('✅ Mensurations enregistrées', 'success');
+}
+
+function loadSavedData() {
+  // Données déjà chargées au build
+}
+
+// ============================================================
+// TOAST
+// ============================================================
+function showToast(msg, type = 'info') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + type + ' show';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>
