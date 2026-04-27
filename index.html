@@ -1354,10 +1354,6 @@ async function syncGoogleFit() {
         { dataTypeName: 'com.google.step_count.delta' },
         { dataTypeName: 'com.google.active_minutes' },
         { dataTypeName: 'com.google.weight' },
-        {
-          dataTypeName: 'com.google.nutrition',
-          dataSourceId: 'raw:com.google.nutrition:com.myfitnesspal.android:'
-        },
       ],
       bucketByTime: { durationMillis: 86400000 },
       startTimeMillis: String(startOfDay),
@@ -1374,16 +1370,28 @@ async function syncGoogleFit() {
     });
 
     if (resp.status === 401) {
-      // Token expiré
       accessToken = null;
-      saveData('access_token', null);
       document.getElementById('loginOverlay').classList.add('show');
       showToast('Session expirée, reconnecte-toi', 'error');
       return;
     }
 
     const data = await resp.json();
-    processData(data);
+
+    // Requête séparée pour nutrition MFP
+    let nutritionData = null;
+    try {
+      const startNano = String(startOfDay) + '000000';
+      const endNano = String(endOfDay) + '000000';
+      const dsId = encodeURIComponent('raw:com.google.nutrition:com.myfitnesspal.android:');
+      const nResp = await fetch(
+        `https://fitness.googleapis.com/fitness/v1/users/me/dataSources/${dsId}/datasets/${startNano}-${endNano}`,
+        { headers: { Authorization: 'Bearer ' + accessToken } }
+      );
+      if (nResp.ok) nutritionData = await nResp.json();
+    } catch(e) { console.warn('Nutrition MFP error', e); }
+
+    processData(data, nutritionData);
 
     const syncTime = new Date().toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
     document.getElementById('lastSync').textContent = `Dernière sync : ${syncTime}`;
@@ -1398,36 +1406,39 @@ async function syncGoogleFit() {
   }
 }
 
-function processData(data) {
+function processData(data, nutritionData) {
   let caloriesIn = 0, caloriesOut = 0, steps = 0, activeMin = 0;
   let carbs = 0, protein = 0, fat = 0, weight = 0;
 
+  // Nutrition MFP (datasource direct)
+  if (nutritionData && nutritionData.point) {
+    for (const pt of nutritionData.point) {
+      for (const v of (pt.value || [])) {
+        if (v.mapVal) {
+          for (const m of v.mapVal) {
+            if (m.key === 'fat.total') fat += m.value?.fpVal || 0;
+            if (m.key === 'protein') protein += m.value?.fpVal || 0;
+            if (m.key === 'carbs.total') carbs += m.value?.fpVal || 0;
+            if (m.key === 'calories') caloriesIn += m.value?.fpVal || 0;
+          }
+        }
+      }
+    }
+  }
+
+  // Activité Google Fit
   if (data.bucket) {
     for (const bucket of data.bucket) {
       for (const ds of (bucket.dataset || [])) {
         for (const pt of (ds.point || [])) {
           const dtype = pt.dataTypeName;
           const vals = pt.value || [];
-
-          if (dtype === 'com.google.calories.consumed') {
-            caloriesIn += vals[0]?.fpVal || 0;
-          } else if (dtype === 'com.google.calories.expended') {
+          if (dtype === 'com.google.calories.expended') {
             caloriesOut += vals[0]?.fpVal || 0;
           } else if (dtype === 'com.google.step_count.delta') {
             steps += vals[0]?.intVal || 0;
           } else if (dtype === 'com.google.active_minutes') {
             activeMin += vals[0]?.intVal || 0;
-          } else if (dtype === 'com.google.nutrition') {
-            for (const v of vals) {
-              if (v.mapVal) {
-                for (const m of v.mapVal) {
-                  if (m.key === 'fat.total') fat += m.value?.fpVal || 0;
-                  if (m.key === 'protein') protein += m.value?.fpVal || 0;
-                  if (m.key === 'carbs.total') carbs += m.value?.fpVal || 0;
-                  if (m.key === 'calories') caloriesIn += m.value?.fpVal || 0;
-                }
-              }
-            }
           } else if (dtype === 'com.google.weight') {
             const w = vals[0]?.fpVal || 0;
             if (w > 0) weight = w;
@@ -1437,8 +1448,6 @@ function processData(data) {
     }
   }
 
-  // Déduplication calories (Fit peut remonter celles de MFP)
-  // On garde caloriesIn de nutrition si disponible
   caloriesIn = Math.round(caloriesIn);
   caloriesOut = Math.round(caloriesOut);
   steps = Math.round(steps);
