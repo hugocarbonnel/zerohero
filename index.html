@@ -643,6 +643,11 @@ textarea:focus{border-color:var(--accent);}
 </div>
 
 <script>
+// ═══════════ SERVICE WORKER ═══════════
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/zerohero/sw.js');
+}
+
 // ═══════════ CONFIG GOOGLE FIT ═══════════
 const CLIENT_ID = '1062390257549-58iurui1h9ett00chsperi7t6412iafo.apps.googleusercontent.com';
 const SCOPES = 'https://www.googleapis.com/auth/fitness.activity.read https://www.googleapis.com/auth/fitness.body.read https://www.googleapis.com/auth/fitness.nutrition.read';
@@ -761,10 +766,20 @@ let saveTimer = null;
 
 // ═══════════ GOOGLE FIT ═══════════
 window.addEventListener('load', () => {
-  document.getElementById('loginOverlay').classList.add('show');
+  // Vérifier si token en session (survit aux rechargements)
+  const savedToken = sessionStorage.getItem('gfit_token');
+  const savedExpiry = parseInt(sessionStorage.getItem('gfit_expiry') || '0');
+  if (savedToken && Date.now() < savedExpiry) {
+    accessToken = savedToken;
+    setFitConnected();
+    // Pas d'overlay, sync directe
+  } else {
+    document.getElementById('loginOverlay').classList.add('show');
+  }
   if (window.google) initGoogleAuth();
   else document.querySelector('script[src*="gsi/client"]').addEventListener('load', initGoogleAuth);
   init();
+  if (accessToken) syncGoogleFit();
 });
 
 function initGoogleAuth() {
@@ -783,11 +798,17 @@ function startGoogleAuth() {
 function handleTokenResponse(resp) {
   if (resp.error) { showToast('Erreur connexion Google'); return; }
   accessToken = resp.access_token;
+  const expiry = Date.now() + ((resp.expires_in || 3600) * 1000);
+  sessionStorage.setItem('gfit_token', accessToken);
+  sessionStorage.setItem('gfit_expiry', String(expiry));
   document.getElementById('loginOverlay').classList.remove('show');
-  const dot = document.getElementById('tb-dot');
-  dot.classList.add('connected');
-  document.getElementById('tb-msg').textContent = 'Google Fit connecté';
+  setFitConnected();
   syncGoogleFit();
+}
+
+function setFitConnected() {
+  document.getElementById('tb-dot').classList.add('connected');
+  document.getElementById('tb-msg').textContent = 'Google Fit connecté';
 }
 
 function skipLogin() {
